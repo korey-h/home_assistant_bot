@@ -1,0 +1,3 @@
+[
+{"entity_id": "switch.zigbee_switch_t1_switch_1", "name": "Реле тестовое", "domain": "switch"}
+]
