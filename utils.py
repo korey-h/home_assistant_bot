@@ -1,6 +1,10 @@
+import json
 import requests
 
 from typing import Dict, List
+
+from telebot.types import (InlineKeyboardButton, InlineKeyboardMarkup,
+    KeyboardButton, ReplyKeyboardMarkup)
 
 HOST = 'http://192.168.1.89:8123'
 
@@ -54,3 +58,27 @@ def make_services_tree(ha_services: List[Dict[str, dict|str]],
     if not services_tree:
         return {'empty': {'info': 'no_services'}}
     return services_tree
+
+
+def make_base_kbd(buttons_name, row_width=3):
+    keyboard = ReplyKeyboardMarkup(row_width=row_width, resize_keyboard=True)
+    buttons = [KeyboardButton(name) for name in buttons_name]
+    return keyboard.add(*buttons)
+
+def make_devices_kbd(active_services: dict):
+    if not active_services:
+        return
+    keyboard = InlineKeyboardMarkup(row_width=1)
+    kbd_purpose = 'devs_control'
+    buttons = []
+    for entity_id, value in active_services.items():
+        name = value.get('name')
+        if not name:
+            name = entity_id[:5]
+        data = json.dumps({'purp': kbd_purpose, 'id': entity_id[:5]})
+        print(len(data))
+        button = InlineKeyboardButton(text=name,
+                 callback_data=data)
+        buttons.append(button)
+    return keyboard.add(*buttons)
+    

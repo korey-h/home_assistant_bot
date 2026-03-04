@@ -16,7 +16,7 @@ from models import User
 if os.path.exists('.env'):
     load_dotenv('.env')
 else:
-    print('файл .env с ключами доступа к боту, базе данны и т.п. не найден.')
+    print('файл .env с ключами доступа к боту и т.п. не найден.')
 
 LET_VIEW_EXS = True
 
@@ -69,7 +69,12 @@ def welcome(message):
             text = 'Сервер Home Assistance не доступен.')
         return
     active_services = utils.make_services_tree(ha_services, active_devices)
-    print('\n', active_services)
+    if active_services:
+        bot.send_message(
+            user.id,
+            text = 'Доступные устройства:',
+            reply_markup=utils.make_devices_kbd(active_services))
+    # print('\n', active_services)
 
 
 @bot.message_handler(content_types=['text'])
