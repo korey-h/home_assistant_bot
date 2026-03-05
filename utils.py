@@ -3,6 +3,7 @@ import requests
 
 from typing import Dict, List
 
+from models import Button, ButtonStorage
 from telebot.types import (InlineKeyboardButton, InlineKeyboardMarkup,
     KeyboardButton, ReplyKeyboardMarkup)
 
@@ -54,31 +55,54 @@ def make_services_tree(ha_services: List[Dict[str, dict|str]],
         services_tree.update({
             entity_id: {
                 'entity_name': name,
+                'domain': domain,
                 'services': services}})
     if not services_tree:
         return {'empty': {'info': 'no_services'}}
     return services_tree
 
 
-def make_base_kbd(buttons_name, row_width=3):
-    keyboard = ReplyKeyboardMarkup(row_width=row_width, resize_keyboard=True)
-    buttons = [KeyboardButton(name) for name in buttons_name]
-    return keyboard.add(*buttons)
+def fill_storage(active_services: dict, storage: ButtonStorage) -> None:
+    for device, features in active_services.items():
+        name = features['entity_name'] if features['entity_name'] else device
+        domain = features['domain']
+        dev_btn = Button(entity_id=device, name=name, domain=domain,
+                         handler=dev_btn_handler)
+        storage.add_button(dev_btn)
+        for service in features['services'].values():
+            serv_btn = Button(entity_id=device, name=service, domain=domain,
+                              parent_id=dev_btn.id, service=service)
+            storage.add_button(serv_btn)
 
-def make_devices_kbd(active_services: dict):
-    if not active_services:
-        return
+
+# def make_base_kbd(buttons_name, row_width=3):
+#     keyboard = ReplyKeyboardMarkup(row_width=row_width, resize_keyboard=True)
+#     buttons = [KeyboardButton(name) for name in buttons_name]
+#     return keyboard.add(*buttons)
+
+
+def make_devices_kbd(storage: ButtonStorage):
     keyboard = InlineKeyboardMarkup(row_width=1)
-    kbd_purpose = 'devs_control'
-    buttons = []
-    for entity_id, value in active_services.items():
-        name = value.get('name')
-        if not name:
-            name = entity_id[:5]
-        data = json.dumps({'purp': kbd_purpose, 'id': entity_id[:5]})
-        print(len(data))
-        button = InlineKeyboardButton(text=name,
-                 callback_data=data)
-        buttons.append(button)
-    return keyboard.add(*buttons)
-    
+    buttons = storage.get_devices_btn()
+    if not buttons:
+        return
+    for button in buttons:
+        keyboard.add(button.make_inline_markup())
+    return keyboard
+
+
+def dev_btn_handler(service: str, domain: str, id: int,
+                    store_class: ButtonStorage) -> Dict[str, dict|str]:
+    buttons = store_class.get_child(id)
+    if not buttons:
+        return {}
+    keyboard = InlineKeyboardMarkup(row_width=3)
+    markuped = []
+    for button in buttons:
+        markuped.append(button.make_inline_markup())
+    keyboard.add(*markuped)
+    pre_mess = [
+        {'text': 'Доступные действия:', 'reply_markup': keyboard}
+    ]
+    return {'ext_act_name': 'send_multymessage',
+            'data': {'pre_mess': pre_mess}}

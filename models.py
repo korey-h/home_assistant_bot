@@ -45,24 +45,28 @@ class User:
     
 class Button:
     NAME_LENTH = 50
-    def __init__(self, domain: str, name: str, service: str = '',
-                 parent_id: int|None = None, handler: Callable|None = None) -> None:
+    def __init__(self, entity_id: str, domain: str, name: str, service: str = '',
+                 parent_id: int|None = None, handler: Callable|None = None,
+                 store_class: ButtonStorage|None = None) -> None:
         self.id: int|None = None
         self.parent_id = parent_id
         self.handler = handler
         self.domain = domain
         self.service = service
         self.name = name
+        self.entity_id = entity_id
+        self.store_class = store_class
     
     def make_inline_markup(self) -> InlineKeyboardButton:
         name = self.name if len(self.name) <= self.NAME_LENTH else self.name[:self.NAME_LENTH]
-        return InlineKeyboardButton(text=name, callback_data=self.id)
+        return InlineKeyboardButton(text=name, callback_data=str(self.id))
     
     def make_action(self):
         if self.handler is None:
             print(f'Для кнопки "{self.name}" ({self.id}) не назначено действие.')
             return
-        attrs = {'service': self.service, 'domain': self.domain, 'id': self.id}
+        attrs = {'service': self.service, 'domain': self.domain, 'id': self.id,
+                 'store_class': self.store_class}
         return self.handler(**attrs)
     
     def __str__(self) -> str:
@@ -90,6 +94,7 @@ class ButtonStorage:
     def add_button(self, button: Button) -> None:
         id = self.__generate_id()
         button.id = id
+        button.store_class = self
         self._storage.update({id: button})
         parent_id = button.parent_id
         if parent_id is not None :
@@ -113,14 +118,21 @@ class ButtonStorage:
             child.append(self._storage[id])
         return child
     
+    def get_devices_btn(self) -> List[Button]:
+        dev_btns = []
+        for btn in self._storage.values():
+            if not btn.service:
+                dev_btns.append(btn)
+        return dev_btns
+
 
 if __name__ == '__main__':
     storage = ButtonStorage()
-    dev_btn = Button(domain='switch', name='Switch-1')
+    dev_btn = Button(domain='switch', name='Switch-1', entity_id='sdddf4444')
     storage.add_button(dev_btn)
 
-    on_btn = Button(domain='switch', name='on', service='on', parent_id=dev_btn.id)
-    off_btn = Button(domain='switch', name='off', service='off', parent_id=dev_btn.id)
+    on_btn = Button(entity_id='ddf111', domain='switch', name='on', service='on', parent_id=dev_btn.id)
+    off_btn = Button(entity_id='ddf222', domain='switch', name='off', service='off', parent_id=dev_btn.id)
     storage.add_many([on_btn, off_btn])
 
     child = storage.get_child(dev_btn.id)

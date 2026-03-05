@@ -9,9 +9,9 @@ import utils
 from dotenv import load_dotenv
 from logging.handlers import RotatingFileHandler
 from telebot import TeleBot
-from typing import List
+from typing import Callable, List
 
-from models import User
+from models import ButtonStorage, User
 
 if os.path.exists('.env'):
     load_dotenv('.env')
@@ -36,6 +36,7 @@ err_info = ''
 users = {}
 approved_users = []
 active_devices = []
+storage = ButtonStorage()
 
 def load_configs():
     global active_devices
@@ -69,12 +70,12 @@ def welcome(message):
             text = 'Сервер Home Assistance не доступен.')
         return
     active_services = utils.make_services_tree(ha_services, active_devices)
+    storage.reset()
     if active_services:
-        bot.send_message(
-            user.id,
-            text = 'Доступные устройства:',
-            reply_markup=utils.make_devices_kbd(active_services))
-    # print('\n', active_services)
+        utils.fill_storage(active_services, storage)
+        send_multymessage(user.id,
+            [{'text': 'Доступные устройства:','reply_markup': utils.make_devices_kbd(storage)}]
+        )
 
 
 @bot.message_handler(content_types=['text'])
@@ -84,6 +85,22 @@ def command_router(message):
         return
     data = message.text
     try_exec_stack(message, user, data)
+
+
+@bot.callback_query_handler(func=lambda call: True, )
+def inline_keys_exec(call):
+    user = get_user(call.message)
+    try:
+        id = int(call.data)
+    except Exception:
+        return
+    button = storage.get_button(id)
+    res = {}
+    if button:
+        res = button.make_action()
+    if res:
+        get_ext_action(user.id, **res)
+
 
 
 def get_user(message) -> User:
@@ -118,6 +135,12 @@ def send_multymessage(user_id, pre_mess: List[dict]):
     for mess_data in pre_mess:
         bot.send_message(user_id, **mess_data)
 
+
+def get_ext_action(user_id, ext_act_name:str, data: dict) -> None:
+    ext_actions = {'send_multymessage': send_multymessage}
+    action = ext_actions.get(ext_act_name)
+    if action:
+        action(user_id, **data)
 
 
 
