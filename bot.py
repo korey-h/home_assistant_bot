@@ -4,7 +4,7 @@ import os
 import threading
 import time
 
-import utils
+import connect_conf as concf, utils
 
 from dotenv import load_dotenv
 from logging.handlers import RotatingFileHandler
@@ -20,10 +20,7 @@ else:
 
 LET_VIEW_EXS = True
 
-tg_token : str = os.getenv('TG_TOKEN') # type: ignore
-bot = TeleBot(tg_token) 
-
-ha_token : str = os.getenv('HA_TOKEN') # type: ignore
+bot = TeleBot(concf.tg_token) 
 
 logger = logging.getLogger(__name__)
 handler = RotatingFileHandler(
@@ -63,7 +60,7 @@ def welcome(message):
     user = get_user(message)
     if not has_access(user):
         return
-    ha_services = utils.get_services(ha_token)
+    ha_services = utils.get_services(concf.ha_token)
     if not ha_services:
         bot.send_message(
             user.id,

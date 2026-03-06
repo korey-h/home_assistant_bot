@@ -1,17 +1,17 @@
 import json
 import requests
 
+import connect_conf as concf
+
 from typing import Dict, List
 
 from models import Button, ButtonStorage
 from telebot.types import (InlineKeyboardButton, InlineKeyboardMarkup,
     KeyboardButton, ReplyKeyboardMarkup)
 
-HOST = 'http://192.168.1.89:8123'
-
 
 def get_services(ha_token: str) -> List[dict]:
-    url = HOST + '/api/services'
+    url = concf.HOST + '/api/services'
     headers = {
         'Authorization': f'Bearer {ha_token}',
         'Content-Type': 'application/json'}
@@ -71,14 +71,9 @@ def fill_storage(active_services: dict, storage: ButtonStorage) -> None:
         storage.add_button(dev_btn)
         for service in features['services'].values():
             serv_btn = Button(entity_id=device, name=service, domain=domain,
-                              parent_id=dev_btn.id, service=service)
+                              parent_id=dev_btn.id, service=service,
+                              handler=serv_btn_handler)
             storage.add_button(serv_btn)
-
-
-# def make_base_kbd(buttons_name, row_width=3):
-#     keyboard = ReplyKeyboardMarkup(row_width=row_width, resize_keyboard=True)
-#     buttons = [KeyboardButton(name) for name in buttons_name]
-#     return keyboard.add(*buttons)
 
 
 def make_devices_kbd(storage: ButtonStorage):
@@ -106,3 +101,29 @@ def dev_btn_handler(service: str, domain: str, id: int,
     ]
     return {'ext_act_name': 'send_multymessage',
             'data': {'pre_mess': pre_mess}}
+
+
+def serv_btn_handler(service: str, domain: str, id: int,
+                    store_class: ButtonStorage) -> None:
+    button = store_class.get_button(id)
+    if not button:
+        print('dev_serv_handler: кнопка не найдена')
+        return
+    entity_id = button.entity_id
+    service = button.service
+    domain = button.domain
+    url = concf.HOST + '/api/services' + f'/{domain}/{service}'
+    headers = {
+        'Authorization': f'Bearer {concf.ha_token}',
+        'Content-Type': 'application/json'}
+    
+    json={'entity_id': entity_id}
+    
+    try:
+        response = requests.post(url, headers=headers, json=json)
+    except Exception as e:
+        print(f'{url} не существует либо сервер не доступен. \n', e)
+        return
+    if response.status_code != 200:
+        return
+    print(response.json())
