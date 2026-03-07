@@ -145,11 +145,8 @@ def serv_btn_handler(id: int, store_class: ButtonStorage) -> dict:
 
 
 def check_state(entity_id: str) -> str:
-    endpoint = '/states'
-    all_entitys = make_api_request(endpoint=endpoint, req_type='get')
-    if not all_entitys:
-        return ''
-    for entity in all_entitys:
-        if entity['entity_id'] == entity_id:
-            return entity['state']
+    endpoint = '/states' + f'/{str(entity_id)}'
+    res = make_api_request(endpoint=endpoint, req_type='get')
+    if res:
+        return res['state']
     return ''
