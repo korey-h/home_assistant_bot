@@ -1,5 +1,6 @@
 import json
 import requests
+import time
 
 import connect_conf as concf
 
@@ -10,19 +11,36 @@ from telebot.types import (InlineKeyboardButton, InlineKeyboardMarkup,
     KeyboardButton, ReplyKeyboardMarkup)
 
 
-def get_services(ha_token: str) -> List[dict]:
-    url = concf.HOST + '/api/services'
+def make_api_request(endpoint: str, req_type: str, **params) -> dict|None:
+    url = concf.HOST + '/api' + endpoint
     headers = {
-        'Authorization': f'Bearer {ha_token}',
+        'Authorization': f'Bearer {concf.ha_token}',
         'Content-Type': 'application/json'}
+    method = None
+    if req_type == 'get':
+        method = requests.get
+    elif req_type == 'post':
+        method = requests.post
+    
+    if method is None:
+        return
+    
     try:
-        response = requests.get(url, headers=headers)
+        response = method(url=url, headers=headers, **params)
     except Exception as e:
         print(f'Адрес {url} не существует либо сервер не доступен. \n', e)
-        return []
-    if response.status_code != 200:
-        return []
-    return response.json()
+        return
+    status = response.status_code
+    if  status == 200:
+        return response.json()
+    print(f'{status}: {url}')
+
+
+def get_services() -> List[dict]:
+    endpoint = '/services'
+    res = make_api_request(endpoint=endpoint, req_type='get')
+    res = res if res is not None else []
+    return res # type: ignore
 
 
 def make_services_tree(ha_services: List[Dict[str, dict|str]],
@@ -86,7 +104,7 @@ def make_devices_kbd(storage: ButtonStorage):
     return keyboard
 
 
-def dev_btn_handler(service: str, domain: str, id: int,
+def dev_btn_handler(id: int,
                     store_class: ButtonStorage) -> Dict[str, dict|str]:
     buttons = store_class.get_child(id)
     if not buttons:
@@ -103,27 +121,35 @@ def dev_btn_handler(service: str, domain: str, id: int,
             'data': {'pre_mess': pre_mess}}
 
 
-def serv_btn_handler(service: str, domain: str, id: int,
-                    store_class: ButtonStorage) -> None:
+def serv_btn_handler(id: int, store_class: ButtonStorage) -> dict:
     button = store_class.get_button(id)
     if not button:
-        print('dev_serv_handler: кнопка не найдена')
-        return
+        mess = {'text':'кнопка не найдена'}
+        print(f'dev_serv_handler: {mess}')
+        return {'ext_act_name': 'send_multymessage',
+                'data': {'pre_mess': [mess]}}
     entity_id = button.entity_id
     service = button.service
     domain = button.domain
-    url = concf.HOST + '/api/services' + f'/{domain}/{service}'
-    headers = {
-        'Authorization': f'Bearer {concf.ha_token}',
-        'Content-Type': 'application/json'}
-    
+    endpoint = f'/services/{domain}/{service}'
     json={'entity_id': entity_id}
-    
-    try:
-        response = requests.post(url, headers=headers, json=json)
-    except Exception as e:
-        print(f'{url} не существует либо сервер не доступен. \n', e)
-        return
-    if response.status_code != 200:
-        return
-    print(response.json())
+    res = make_api_request(endpoint=endpoint,req_type='post', json=json)
+    time.sleep(1)
+    state = check_state(entity_id)
+    if state:
+        text = f'Состояние: "{state}"'
+    else:
+        text = 'Результат действия не известен.'
+    return {'ext_act_name': 'send_multymessage',
+            'data': {'pre_mess': [{'text': text}]}}
+
+
+def check_state(entity_id: str) -> str:
+    endpoint = '/states'
+    all_entitys = make_api_request(endpoint=endpoint, req_type='get')
+    if not all_entitys:
+        return ''
+    for entity in all_entitys:
+        if entity['entity_id'] == entity_id:
+            return entity['state']
+    return ''

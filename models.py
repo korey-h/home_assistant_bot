@@ -6,20 +6,18 @@ from typing import Callable, List
 
 class User:
 
-    def __init__(self, id: str, approved_users: List[dict] = []):
+    def __init__(self, id: int):
         self.id = id
         self._commands = []
         self.storage = []
-        self.role = self._get_role(id, approved_users)
+        self.role = ''
 
-    @staticmethod
-    def _get_role(id: str, approved_users: List[dict]) -> str:
+    def set_role(self, approved_users: List[dict]) -> None:
         if not approved_users:
-            return ''
+            return
         for user in approved_users:
-            if str(id) == user['user_id']:
-                return user['role']
-        return ''
+            if str(self.id) == user['user_id']:
+                self.role = user['role']
 
     def is_stack_empty(self):
         return len(self._commands) == 0
@@ -65,8 +63,7 @@ class Button:
         if self.handler is None:
             print(f'Для кнопки "{self.name}" ({self.id}) не назначено действие.')
             return
-        attrs = {'service': self.service, 'domain': self.domain, 'id': self.id,
-                 'store_class': self.store_class}
+        attrs = {'id': self.id, 'store_class': self.store_class}
         return self.handler(**attrs)
     
     def __str__(self) -> str:

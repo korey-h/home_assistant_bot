@@ -58,9 +58,10 @@ def load_configs():
 def welcome(message):
     load_configs() # TODO добавить отправку ошибок
     user = get_user(message)
+    user.set_role(approved_users)
     if not has_access(user):
         return
-    ha_services = utils.get_services(concf.ha_token)
+    ha_services = utils.get_services()
     if not ha_services:
         bot.send_message(
             user.id,
@@ -102,7 +103,7 @@ def inline_keys_exec(call):
 
 def get_user(message) -> User:
     user_id = message.chat.id
-    return users.setdefault(user_id, User(user_id, approved_users))
+    return users.setdefault(user_id, User(user_id))
 
 
 def try_exec_stack(message, user: User, data, **kwargs):
