@@ -9,7 +9,7 @@ import connect_conf as concf, utils
 from dotenv import load_dotenv
 from logging.handlers import RotatingFileHandler
 from telebot import TeleBot
-from typing import Callable, List
+from typing import List
 
 from models import ButtonStorage, User
 
@@ -18,7 +18,7 @@ if os.path.exists('.env'):
 else:
     print('файл .env с ключами доступа к боту и т.п. не найден.')
 
-LET_VIEW_EXS = True
+LET_VIEW_EXS = False
 
 bot = TeleBot(concf.tg_token) 
 
@@ -139,10 +139,6 @@ def get_ext_action(user_id, ext_act_name:str, data: dict) -> None:
     action = ext_actions.get(ext_act_name)
     if action:
         action(user_id, **data)
-
-
-
-
 
 
 ##################################################################

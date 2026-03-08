@@ -1,4 +1,3 @@
-import json
 import requests
 import time
 
@@ -7,8 +6,7 @@ import connect_conf as concf
 from typing import Dict, List
 
 from models import Button, ButtonStorage
-from telebot.types import (InlineKeyboardButton, InlineKeyboardMarkup,
-    KeyboardButton, ReplyKeyboardMarkup)
+from telebot.types import InlineKeyboardMarkup
 
 
 def make_api_request(endpoint: str, req_type: str, **params) -> dict|None:

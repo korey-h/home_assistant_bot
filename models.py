@@ -1,7 +1,4 @@
-
-
-from telebot.types import (InlineKeyboardButton, InlineKeyboardMarkup,
-    KeyboardButton, ReplyKeyboardMarkup)
+from telebot.types import InlineKeyboardButton
 from typing import Callable, List
 
 class User:
@@ -121,18 +118,3 @@ class ButtonStorage:
             if not btn.service:
                 dev_btns.append(btn)
         return dev_btns
-
-
-if __name__ == '__main__':
-    storage = ButtonStorage()
-    dev_btn = Button(domain='switch', name='Switch-1', entity_id='sdddf4444')
-    storage.add_button(dev_btn)
-
-    on_btn = Button(entity_id='ddf111', domain='switch', name='on', service='on', parent_id=dev_btn.id)
-    off_btn = Button(entity_id='ddf222', domain='switch', name='off', service='off', parent_id=dev_btn.id)
-    storage.add_many([on_btn, off_btn])
-
-    child = storage.get_child(dev_btn.id)
-    for btn in child:
-        print(btn)
-        btn.make_action()
