@@ -50,7 +50,7 @@ def make_services_tree(ha_services: List[Dict[str, dict|str]],
     for device in active_devices:
         entity_id = device.get('entity_id')
         domain = device.get('domain')
-        name = device.get('domain','')
+        name = device.get('name','')
         if not (entity_id or domain):
             continue
         domain_services = []
