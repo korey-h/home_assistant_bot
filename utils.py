@@ -48,8 +48,8 @@ def make_services_tree(ha_services: List[Dict[str, dict|str]],
     if not (active_devices or ha_services):
         return {'empty': {'info': 'no_input_data'}}
     for device in active_devices:
-        entity_id = device.get('entity_id')
-        domain = device.get('domain')
+        entity_id = device.get('entity_id', '')
+        domain = entity_id.split('.')[0]
         name = device.get('name','')
         if not (entity_id or domain):
             continue
